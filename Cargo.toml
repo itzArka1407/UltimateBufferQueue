@@ -1,0 +1,10 @@
+[package]
+name = "buffer-queue"
+version = "0.1.0"
+edition = "2024"
+authors = ["Arka <arkaprovodas2004@gmail.com>"]
+repository = "https://github.com/itzArka1407/UltimateBufferQueue/"
+description = "A flexible highly performant buffer queue for rust for different use cases like SPSC, MPSC, etc..."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
