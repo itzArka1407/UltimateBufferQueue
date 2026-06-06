@@ -46,44 +46,44 @@ impl MarkerData for MarkerTypeDecider<3> {
 // Trait impls for marker operations
 impl MarkerAtomicOperations for AtomicU8 {
     type OutputItem = u8;
-    fn load_acq(&self) -> u8 {
-        self.load(Ordering::Acquire)
+    fn load(&self, order: Ordering) -> u8 {
+        self.load(order)
     }
 
-    fn store_rel(&self, val: u8) {
-        self.store(val, Ordering::Release);
+    fn store(&self, val: u8, order: Ordering) {
+        self.store(val, order);
     }
 }
 
 impl MarkerAtomicOperations for AtomicU16 {
     type OutputItem = u16;
-    fn load_acq(&self) -> u16 {
-        self.load(Ordering::Acquire)
+    fn load(&self, order: Ordering) -> u16 {
+        self.load(order)
     }
 
-    fn store_rel(&self, val: u16) {
-        self.store(val, Ordering::Release);
+    fn store(&self, val: u16, order: Ordering) {
+        self.store(val, order);
     }
 }
 
 impl MarkerAtomicOperations for AtomicU32 {
     type OutputItem = u32;
-    fn load_acq(&self) -> u32 {
-        self.load(Ordering::Acquire)
+    fn load(&self, order: Ordering) -> u32 {
+        self.load(order)
     }
 
-    fn store_rel(&self, val: u32) {
-        self.store(val, Ordering::Release);
+    fn store(&self, val: u32, order: Ordering) {
+        self.store(val, order);
     }
 }
 
 impl MarkerAtomicOperations for AtomicU64 {
     type OutputItem = u64;
-    fn load_acq(&self) -> u64 {
-        self.load(Ordering::Acquire)
+    fn load(&self, order: Ordering) -> u64 {
+        self.load(order)
     }
 
-    fn store_rel(&self, val: u64) {
-        self.store(val, Ordering::Release);
+    fn store(&self, val: u64, order: Ordering) {
+        self.store(val, order);
     }
 }
