@@ -12,9 +12,9 @@ pub trait MarkerData {
 
 /// Used to define functions for markers to perform operations on them
 pub(crate) trait MarkerAtomicOperations {
-    type OutputItem;
-    fn load(&self, order: Ordering) -> usize;
-    fn store(&self, val: usize, order: Ordering);
+    type OutputItem: OutputTrait + Copy;
+    fn load(&self, order: Ordering) -> Self::OutputItem;
+    fn store(&self, val: Self::OutputItem, order: Ordering);
     fn fetch_add(&self, val: usize, order: Ordering) -> usize;
 
     fn fetch_update(
@@ -23,6 +23,11 @@ pub(crate) trait MarkerAtomicOperations {
         fetch_order: Ordering,
         f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
     ) -> Result<Self::OutputItem, Self::OutputItem>;
+}
 
-    fn wrapping_increment(val: Self::OutputItem, boundary: usize) -> Self::OutputItem;
+// To convert to/from usize
+pub trait OutputTrait {
+    fn to_usize(self) -> usize;
+    fn from_usize(val: usize) -> Self;
+    fn wrapping_increment(self, boundary: usize) -> Self;
 }

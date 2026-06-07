@@ -1,6 +1,6 @@
 use crate::{
     helper_functions::{determine_flag_size, determine_marker_type_index},
-    helper_traits::{MarkerAtomicOperations, MarkerData},
+    helper_traits::{MarkerAtomicOperations, MarkerData, OutputTrait},
     models::helper_models::{BitFlip, BufferMarkers, MarkerTypeDecider},
 };
 use std::{cell::UnsafeCell, mem::MaybeUninit, sync::atomic::Ordering};
@@ -55,21 +55,22 @@ where
 
     #[inline(always)]
     fn _sc_pop(&self) -> Option<T> {
-        let read_slot = self.markers.tail.load(Ordering::Relaxed);
+        let read_slot = self.markers.tail.load(Ordering::Relaxed).to_usize();
         // Empty buffer OR invalidated OR data is being written
-        if read_slot == self.markers.head.load(Ordering::Acquire)
+        if read_slot == self.markers.head.load(Ordering::Acquire).to_usize()
             || self.markers.invalidated.load(Ordering::Relaxed)
             || !self.markers.is_not_being_written(read_slot)
         {
             return None;
         }
         unsafe {
-            let read_ptr = self.buf.get().add(read_slot) as *mut MaybeUninit<T>;
+            let read_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_slot);
             let val = std::ptr::read(read_ptr);
             *read_ptr = MaybeUninit::uninit();
-            self.markers
-                .tail
-                .store((read_slot + 1) % N, Ordering::Release);
+            self.markers.tail.store(
+                OutputTrait::from_usize((read_slot + 1) % N),
+                Ordering::Release,
+            );
             Some(val.assume_init())
         }
     }
@@ -79,16 +80,42 @@ where
         let old_tail = self
             .markers
             .tail
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |val| {
-                if val == self.markers.head.load(Ordering::Acquire)
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |read_slot| {
+                // Check if empty buffer OR invalidated already
+                if read_slot.to_usize() == self.markers.head.load(Ordering::Acquire).to_usize()
                     || self.markers.invalidated.load(Ordering::Relaxed)
                 {
                     return None;
                 }
-                Some((val + 1) % N)
+                // Try to increment the tail idx
+                Some(read_slot.wrapping_increment(N))
             })
             .ok()?;
-        None
+        let read_idx = old_tail.to_usize();
+
+        // Until the writing in the slot completes, spin
+        while !self.markers.is_not_being_written(read_idx) {
+            if self.markers.invalidated.load(Ordering::Relaxed) {
+                return None;
+            }
+            std::hint::spin_loop();
+        }
+
+        // Read from the read index and init the value
+        // FIXME: RACE Condition -- if a new thread writes onto read_idx(which it can because tail
+        // has incremented, and the register flag hasn't been implemeneted yet) before the following lines
+        // are executed, there can be a read & write on the same exact memory slot at the same time
+        // TOTAL MEMORY CORRUPTION -- Fix the architecture. Might be a complete change.
+        unsafe {
+            let ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_idx);
+            self.markers
+                .update_read_mask(read_idx, Ordering::Relaxed, BitFlip::Register);
+            let val = std::ptr::read(ptr);
+            *ptr = MaybeUninit::uninit();
+            self.markers
+                .update_read_mask(read_idx, Ordering::Release, BitFlip::Unregister);
+            Some(val.assume_init())
+        }
     }
 
     #[inline(always)]

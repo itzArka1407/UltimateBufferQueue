@@ -4,6 +4,7 @@
 mod helper_functions;
 pub mod helper_traits;
 pub mod models;
+pub(crate) mod traits;
 
 #[cfg(test)]
 mod tests;
