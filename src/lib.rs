@@ -4,3 +4,6 @@
 mod helper_functions;
 pub mod helper_traits;
 pub mod models;
+
+#[cfg(test)]
+mod tests;

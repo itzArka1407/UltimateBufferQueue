@@ -1,7 +1,15 @@
-use std::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering},
+    usize,
+};
 
 use crate::helper_traits::{MarkerAtomicOperations, MarkerData};
 const ATOMIC_ZERO: AtomicU8 = AtomicU8::new(0); // Used to init the bit flags
+
+pub(crate) enum BitFlip {
+    Register,   // Bit -> 1 -- register write state
+    Unregister, // Bit -> 0 -- unregister write state
+}
 
 // Create the markers for the buffer queue, head/tail moves on insertion
 // The ready mask is a bit-flag mask array that denotes if some value is ready for operations
@@ -9,18 +17,43 @@ pub(crate) struct BufferMarkers<
     MarkerType: Default + MarkerAtomicOperations,
     const MASK_SIZE: usize,
 > {
-    pub head: MarkerType,
-    pub tail: MarkerType,
-    pub ready_mask: [AtomicU8; MASK_SIZE],
+    pub head: MarkerType,                  // The buffer's head index
+    pub tail: MarkerType,                  // The buffer's tail index
+    pub invalidated: AtomicBool,           // If the buffer is invalidated
+    pub ready_mask: [AtomicU8; MASK_SIZE], // The mask to represent read-states
 }
 
 impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, M_SIZE> {
+    #[inline]
     pub fn new() -> Self {
         Self {
             head: M::default(),
             tail: M::default(),
+            invalidated: AtomicBool::default(),
             ready_mask: [ATOMIC_ZERO; M_SIZE],
         }
+    }
+
+    // Load up the essentials for a push at index: idx with specific ordering
+    #[inline(always)]
+    pub fn update_read_mask(&self, idx: usize, order: Ordering, operation: BitFlip) {
+        let el_idx = idx / 8; // Where the input in bit mask is gonna happen
+        let mask = 1 << (7 - (idx % 8)); // Mark only a bit as 1, else all 0
+
+        let el = &self.ready_mask[el_idx];
+        match operation {
+            BitFlip::Register => el.fetch_or(mask, order), // Mark the nth bit from start - 1
+            BitFlip::Unregister => el.fetch_and(!mask, order), // Mark the nth bit from start - 0
+        };
+    }
+
+    // Checks if the bit at a given idx is 0 -- meaning no writing going on
+    #[inline(always)]
+    pub fn is_not_being_written(&self, idx: usize) -> bool {
+        let el_idx = idx / 8;
+        let mask = 1 << (7 - (idx % 8));
+
+        self.ready_mask[el_idx].load(Ordering::Acquire) & mask == 0
     }
 }
 
@@ -29,61 +62,141 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
 pub struct MarkerTypeDecider<const N: usize>;
 impl MarkerData for MarkerTypeDecider<0> {
     type MarkerType = AtomicU8;
+    const DENOMINATOR: usize = 8;
 }
 
 impl MarkerData for MarkerTypeDecider<1> {
     type MarkerType = AtomicU16;
+    const DENOMINATOR: usize = 16;
 }
 
 impl MarkerData for MarkerTypeDecider<2> {
     type MarkerType = AtomicU32;
+    const DENOMINATOR: usize = 32;
 }
 
 impl MarkerData for MarkerTypeDecider<3> {
     type MarkerType = AtomicU64;
+    const DENOMINATOR: usize = 64;
 }
 
 // Trait impls for marker operations
 impl MarkerAtomicOperations for AtomicU8 {
     type OutputItem = u8;
-    fn load(&self, order: Ordering) -> u8 {
-        self.load(order)
+
+    fn load(&self, order: Ordering) -> usize {
+        self.load(order) as usize
     }
 
-    fn store(&self, val: u8, order: Ordering) {
-        self.store(val, order);
+    fn store(&self, val: usize, order: Ordering) {
+        self.store(val as u8, order);
+    }
+
+    fn fetch_add(&self, val: usize, order: Ordering) -> usize {
+        self.fetch_add(val as u8, order) as usize
+    }
+
+    fn fetch_update(
+        &self,
+        set_order: Ordering,
+        fetch_order: Ordering,
+        f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
+    ) -> Result<u8, u8> {
+        self.fetch_update(set_order, fetch_order, f)
+    }
+
+    fn wrapping_increment(mut val: Self::OutputItem, boundary: usize) -> Self::OutputItem {
+        val = (val + 1) % boundary as Self::OutputItem;
+        val
     }
 }
 
 impl MarkerAtomicOperations for AtomicU16 {
     type OutputItem = u16;
-    fn load(&self, order: Ordering) -> u16 {
-        self.load(order)
+
+    fn load(&self, order: Ordering) -> usize {
+        self.load(order) as usize
     }
 
-    fn store(&self, val: u16, order: Ordering) {
-        self.store(val, order);
+    fn store(&self, val: usize, order: Ordering) {
+        self.store(val as u16, order);
+    }
+
+    fn fetch_add(&self, val: usize, order: Ordering) -> usize {
+        self.fetch_add(val as u16, order) as usize
+    }
+
+    fn fetch_update(
+        &self,
+        set_order: Ordering,
+        fetch_order: Ordering,
+        f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
+    ) -> Result<Self::OutputItem, Self::OutputItem> {
+        self.fetch_update(set_order, fetch_order, f)
+    }
+
+    fn wrapping_increment(mut val: Self::OutputItem, boundary: usize) -> Self::OutputItem {
+        val = (val + 1) % boundary as Self::OutputItem;
+        val
     }
 }
 
 impl MarkerAtomicOperations for AtomicU32 {
     type OutputItem = u32;
-    fn load(&self, order: Ordering) -> u32 {
-        self.load(order)
+
+    fn load(&self, order: Ordering) -> usize {
+        self.load(order) as usize
     }
 
-    fn store(&self, val: u32, order: Ordering) {
-        self.store(val, order);
+    fn store(&self, val: usize, order: Ordering) {
+        self.store(val as u32, order);
+    }
+
+    fn fetch_add(&self, val: usize, order: Ordering) -> usize {
+        self.fetch_add(val as u32, order) as usize
+    }
+
+    fn fetch_update(
+        &self,
+        set_order: Ordering,
+        fetch_order: Ordering,
+        f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
+    ) -> Result<Self::OutputItem, Self::OutputItem> {
+        self.fetch_update(set_order, fetch_order, f)
+    }
+
+    fn wrapping_increment(mut val: Self::OutputItem, boundary: usize) -> Self::OutputItem {
+        val = (val + 1) % boundary as Self::OutputItem;
+        val
     }
 }
 
 impl MarkerAtomicOperations for AtomicU64 {
     type OutputItem = u64;
-    fn load(&self, order: Ordering) -> u64 {
-        self.load(order)
+
+    fn load(&self, order: Ordering) -> usize {
+        self.load(order) as usize
     }
 
-    fn store(&self, val: u64, order: Ordering) {
-        self.store(val, order);
+    fn store(&self, val: usize, order: Ordering) {
+        self.store(val as u64, order);
+    }
+
+    fn fetch_add(&self, val: usize, order: Ordering) -> usize {
+        self.fetch_add(val as u64, order) as usize
+    }
+
+    fn fetch_update(
+        &self,
+        set_order: Ordering,
+        fetch_order: Ordering,
+        f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
+    ) -> Result<Self::OutputItem, Self::OutputItem> {
+        self.fetch_update(set_order, fetch_order, f)
+    }
+
+    fn wrapping_increment(mut val: Self::OutputItem, boundary: usize) -> u64 {
+        val = (val + 1) % boundary as u64;
+        val
     }
 }
