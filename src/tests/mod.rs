@@ -1,10 +1,10 @@
 use std::any::type_name;
 
-use crate::models::BufferQueue;
+use crate::models::{BufferQueue, buffer_modes::SPSC};
 
 #[test]
 fn check_types() {
-    let inst = BufferQueue::<(), 60000>::new();
+    let inst = BufferQueue::<(), SPSC, 60000>::new();
 
     get_type(&inst.markers);
 }

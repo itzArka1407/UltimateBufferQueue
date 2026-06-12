@@ -1,0 +1,2 @@
+// Trait to decide the type of buffer: e.g: SPSC, MPSC
+pub trait BufferMode {}

@@ -1,3 +1,4 @@
+// Output trait implementations -- common ground for returning data to the caller
 use crate::helper_traits::OutputTrait;
 
 impl OutputTrait for u8 {

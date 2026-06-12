@@ -2,12 +2,13 @@ use crate::{
     helper_functions::{determine_flag_size, determine_marker_type_index},
     helper_traits::{MarkerAtomicOperations, MarkerData, OutputTrait},
     models::helper_models::{BitFlip, BufferMarkers, MarkerTypeDecider},
+    traits::buffer_mode_traits::BufferMode,
 };
-use std::{cell::UnsafeCell, mem::MaybeUninit, sync::atomic::Ordering};
+use std::{cell::UnsafeCell, marker::PhantomData, mem::MaybeUninit, sync::atomic::Ordering};
 
 // SAFETY: Uses nightly features, stable rust as of May 2026 doesn't support generic const
 // evaluations, so this is not possible to do with stable rust
-pub struct BufferQueue<T, const N: usize>
+pub struct BufferQueue<T, Mode: BufferMode, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
@@ -17,9 +18,10 @@ where
         <MarkerTypeDecider<{ determine_marker_type_index(N) }> as MarkerData>::MarkerType,
         { determine_flag_size(N, 8) },
     >,
+    _mode: PhantomData<Mode>,
 }
 
-impl<T, const N: usize> BufferQueue<T, N>
+impl<T, M: BufferMode, const N: usize> BufferQueue<T, M, N>
 where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
@@ -29,20 +31,21 @@ where
         Self {
             buf: unsafe { UnsafeCell::new(MaybeUninit::uninit().assume_init()) },
             markers: BufferMarkers::new(),
+            _mode: PhantomData,
         }
     }
 
     // The following functions are methods of altering the buffer's internals, not accessible by a
     // user crate -- these functions are used in other places
     #[inline(always)]
-    fn _sp_push(&self, val: T) -> bool {
+    pub(crate) fn _sp_push(&self, val: T) -> bool {
         // TODO: Update the buffer
         self.markers.head.fetch_add(1, Ordering::Release);
         false
     }
 
     #[inline(always)]
-    fn _mp_push(&self, val: T) -> bool {
+    pub(crate) fn _mp_push(&self, val: T) -> bool {
         let write_slot = self.markers.head.fetch_add(1, Ordering::Acquire);
         // Register the write state
         self.markers
@@ -54,7 +57,7 @@ where
     }
 
     #[inline(always)]
-    fn _sc_pop(&self) -> Option<T> {
+    pub(crate) fn _sc_pop(&self) -> Option<T> {
         let read_slot = self.markers.tail.load(Ordering::Relaxed).to_usize();
         // Empty buffer OR invalidated OR data is being written
         if read_slot == self.markers.head.load(Ordering::Acquire).to_usize()
@@ -76,7 +79,7 @@ where
     }
 
     #[inline(always)]
-    fn _mc_pop(&self) -> Option<T> {
+    pub(crate) fn _mc_pop(&self) -> Option<T> {
         let old_tail = self
             .markers
             .tail
