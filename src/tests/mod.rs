@@ -1,5 +1,8 @@
 use std::any::type_name;
 
+#[cfg(test)]
+mod size_tests;
+
 use crate::models::{BufferQueue, buffer_modes::SPSC};
 
 #[test]

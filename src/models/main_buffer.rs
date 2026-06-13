@@ -42,17 +42,22 @@ where
 
     // The following functions are methods of altering the buffer's internals, not accessible by a
     // user crate -- these functions are used in other places
+
+    // For pushes -- Some(val) -> when push fails, the val is returned, None -> push success
+    // For pops -- Some(val) -> pop success, val is returned, None -> pop failed
+
     #[inline(always)]
     pub(crate) fn _sp_push(&self, val: T) -> Option<T> {
-        let val = ManuallyDrop::new(val);
+        // let val = ManuallyDrop::new(val);
         let write_slot = self.markers.head.load(Ordering::Relaxed).to_usize();
         let next = (write_slot + 1) % N;
 
+        // Buffer full | invalidated | read going on at that index
         if next == self.markers.tail.load(Ordering::Acquire).to_usize()
             || self.markers.invalidated.load(Ordering::Relaxed)
             || !self.markers.is_not_being_read(write_slot)
         {
-            return Some(ManuallyDrop::into_inner(val));
+            return Some(val);
         }
 
         self.markers
@@ -60,7 +65,7 @@ where
 
         unsafe {
             let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_slot);
-            std::ptr::write(write_ptr, MaybeUninit::new(ManuallyDrop::into_inner(val)));
+            std::ptr::write(write_ptr, MaybeUninit::new(val));
             self.markers
                 .update_write_mask(write_slot, Ordering::Release, BitFlip::Unregister);
             self.markers
@@ -72,7 +77,7 @@ where
 
     #[inline(always)]
     pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
-        let val = ManuallyDrop::new(val);
+        // let val = ManuallyDrop::new(val);
 
         let old_head = match self.markers.head.fetch_update(
             Ordering::AcqRel,
@@ -88,14 +93,14 @@ where
             },
         ) {
             Ok(head) => head,
-            Err(_) => return Some(ManuallyDrop::into_inner(val)),
+            Err(_) => return Some(val),
         };
 
         let write_idx = old_head.to_usize();
 
         loop {
             if self.markers.invalidated.load(Ordering::Relaxed) {
-                return Some(ManuallyDrop::into_inner(val));
+                return Some(val);
             }
             if self.markers.is_not_being_read(write_idx) {
                 break;
@@ -108,7 +113,7 @@ where
 
         unsafe {
             let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_idx);
-            std::ptr::write(write_ptr, MaybeUninit::new(ManuallyDrop::into_inner(val)));
+            std::ptr::write(write_ptr, MaybeUninit::new(val));
             self.markers
                 .update_write_mask(write_idx, Ordering::Release, BitFlip::Unregister);
         }

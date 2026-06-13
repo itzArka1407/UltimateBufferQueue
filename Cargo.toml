@@ -8,3 +8,6 @@ description = "A flexible highly performant buffer queue for rust for different 
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+atomic-waker = "1.1.2"
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "signal", "net"] }
+triomphe = "0.1.15"
