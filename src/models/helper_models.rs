@@ -17,7 +17,8 @@ pub(crate) struct BufferMarkers<
     pub head: MarkerType,                  // The buffer's head index
     pub tail: MarkerType,                  // The buffer's tail index
     pub invalidated: AtomicBool,           // If the buffer is invalidated
-    pub ready_mask: [AtomicU8; MASK_SIZE], // The mask to represent read-states
+    pub write_mask: [AtomicU8; MASK_SIZE], // The mask to represent write-state
+    pub read_mask: [AtomicU8; MASK_SIZE],  // The mask to represent write-state
 }
 
 impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, M_SIZE> {
@@ -27,30 +28,53 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
             head: M::default(),
             tail: M::default(),
             invalidated: AtomicBool::default(),
-            ready_mask: [ATOMIC_ZERO; M_SIZE],
+            write_mask: [ATOMIC_ZERO; M_SIZE],
+            read_mask: [ATOMIC_ZERO; M_SIZE],
         }
     }
 
-    // Load up the essentials for a push at index: idx with specific ordering
+    // Update the read mask for an active read operation
     #[inline(always)]
     pub fn update_read_mask(&self, idx: usize, order: Ordering, operation: BitFlip) {
         let el_idx = idx / 8; // Where the input in bit mask is gonna happen
         let mask = 1 << (7 - (idx % 8)); // Mark only a bit as 1, else all 0
 
-        let el = &self.ready_mask[el_idx];
+        let el = &self.read_mask[el_idx];
         match operation {
             BitFlip::Register => el.fetch_or(mask, order), // Mark the nth bit from start - 1
             BitFlip::Unregister => el.fetch_and(!mask, order), // Mark the nth bit from start - 0
         };
     }
 
-    // Checks if the bit at a given idx is 0 -- meaning no writing going on
+    // Update the write operation for an active write mask
+    #[inline(always)]
+    pub fn update_write_mask(&self, idx: usize, order: Ordering, operation: BitFlip) {
+        let el_idx = idx / 8; // Where the input in bit mask is gonna happen
+        let mask = 1 << (7 - (idx % 8)); // Mark only a bit as 1, else all 0
+
+        let el = &self.write_mask[el_idx];
+        match operation {
+            BitFlip::Register => el.fetch_or(mask, order), // Mark the nth bit from start - 1
+            BitFlip::Unregister => el.fetch_and(!mask, order), // Mark the nth bit from start - 0
+        };
+    }
+
+    // Checks if the bit at a given idx is 0 -- means no reading going on
+    #[inline(always)]
+    pub fn is_not_being_read(&self, idx: usize) -> bool {
+        let el_idx = idx / 8;
+        let mask = 1 << (7 - (idx % 8));
+
+        self.read_mask[el_idx].load(Ordering::Acquire) & mask == 0
+    }
+
+    // Checks if the bit at a given idx is 0 -- means no writing going on
     #[inline(always)]
     pub fn is_not_being_written(&self, idx: usize) -> bool {
         let el_idx = idx / 8;
         let mask = 1 << (7 - (idx % 8));
 
-        self.ready_mask[el_idx].load(Ordering::Acquire) & mask == 0
+        self.write_mask[el_idx].load(Ordering::Acquire) & mask == 0
     }
 }
 

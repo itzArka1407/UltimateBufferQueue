@@ -4,7 +4,12 @@ use crate::{
     models::helper_models::{BitFlip, BufferMarkers, MarkerTypeDecider},
     traits::buffer_mode_traits::BufferMode,
 };
-use std::{cell::UnsafeCell, marker::PhantomData, mem::MaybeUninit, sync::atomic::Ordering};
+use std::{
+    cell::UnsafeCell,
+    marker::PhantomData,
+    mem::{ManuallyDrop, MaybeUninit},
+    sync::atomic::Ordering,
+};
 
 // SAFETY: Uses nightly features, stable rust as of May 2026 doesn't support generic const
 // evaluations, so this is not possible to do with stable rust
@@ -38,38 +43,99 @@ where
     // The following functions are methods of altering the buffer's internals, not accessible by a
     // user crate -- these functions are used in other places
     #[inline(always)]
-    pub(crate) fn _sp_push(&self, val: T) -> bool {
-        // TODO: Update the buffer
-        self.markers.head.fetch_add(1, Ordering::Release);
-        false
+    pub(crate) fn _sp_push(&self, val: T) -> Option<T> {
+        let val = ManuallyDrop::new(val);
+        let write_slot = self.markers.head.load(Ordering::Relaxed).to_usize();
+        let next = (write_slot + 1) % N;
+
+        if next == self.markers.tail.load(Ordering::Acquire).to_usize()
+            || self.markers.invalidated.load(Ordering::Relaxed)
+            || !self.markers.is_not_being_read(write_slot)
+        {
+            return Some(ManuallyDrop::into_inner(val));
+        }
+
+        self.markers
+            .update_write_mask(write_slot, Ordering::Relaxed, BitFlip::Register);
+
+        unsafe {
+            let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_slot);
+            std::ptr::write(write_ptr, MaybeUninit::new(ManuallyDrop::into_inner(val)));
+            self.markers
+                .update_write_mask(write_slot, Ordering::Release, BitFlip::Unregister);
+            self.markers
+                .head
+                .store(OutputTrait::from_usize(next), Ordering::Release);
+        }
+        None
     }
 
     #[inline(always)]
-    pub(crate) fn _mp_push(&self, val: T) -> bool {
-        let write_slot = self.markers.head.fetch_add(1, Ordering::Acquire);
-        // Register the write state
+    pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
+        let val = ManuallyDrop::new(val);
+
+        let old_head = match self.markers.head.fetch_update(
+            Ordering::AcqRel,
+            Ordering::Acquire,
+            |write_slot| {
+                let next = write_slot.wrapping_increment(N);
+                if next.to_usize() == self.markers.tail.load(Ordering::Acquire).to_usize()
+                    || self.markers.invalidated.load(Ordering::Relaxed)
+                {
+                    return None;
+                }
+                Some(next)
+            },
+        ) {
+            Ok(head) => head,
+            Err(_) => return Some(ManuallyDrop::into_inner(val)),
+        };
+
+        let write_idx = old_head.to_usize();
+
+        loop {
+            if self.markers.invalidated.load(Ordering::Relaxed) {
+                return Some(ManuallyDrop::into_inner(val));
+            }
+            if self.markers.is_not_being_read(write_idx) {
+                break;
+            }
+            std::hint::spin_loop();
+        }
+
         self.markers
-            .update_read_mask(write_slot, Ordering::Relaxed, BitFlip::Register);
-        // TODO: Write into the buffer
-        self.markers
-            .update_read_mask(write_slot, Ordering::Release, BitFlip::Unregister);
-        false
+            .update_write_mask(write_idx, Ordering::Relaxed, BitFlip::Register);
+
+        unsafe {
+            let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_idx);
+            std::ptr::write(write_ptr, MaybeUninit::new(ManuallyDrop::into_inner(val)));
+            self.markers
+                .update_write_mask(write_idx, Ordering::Release, BitFlip::Unregister);
+        }
+        None
     }
 
     #[inline(always)]
     pub(crate) fn _sc_pop(&self) -> Option<T> {
         let read_slot = self.markers.tail.load(Ordering::Relaxed).to_usize();
-        // Empty buffer OR invalidated OR data is being written
+
         if read_slot == self.markers.head.load(Ordering::Acquire).to_usize()
             || self.markers.invalidated.load(Ordering::Relaxed)
             || !self.markers.is_not_being_written(read_slot)
         {
             return None;
         }
+
+        // Claim slot before pusher can wrap around into it
+        self.markers
+            .update_read_mask(read_slot, Ordering::Release, BitFlip::Register);
+
         unsafe {
             let read_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_slot);
             let val = std::ptr::read(read_ptr);
             *read_ptr = MaybeUninit::uninit();
+            self.markers
+                .update_read_mask(read_slot, Ordering::Release, BitFlip::Unregister);
             self.markers.tail.store(
                 OutputTrait::from_usize((read_slot + 1) % N),
                 Ordering::Release,
@@ -84,35 +150,33 @@ where
             .markers
             .tail
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |read_slot| {
-                // Check if empty buffer OR invalidated already
                 if read_slot.to_usize() == self.markers.head.load(Ordering::Acquire).to_usize()
                     || self.markers.invalidated.load(Ordering::Relaxed)
                 {
                     return None;
                 }
-                // Try to increment the tail idx
                 Some(read_slot.wrapping_increment(N))
             })
             .ok()?;
+
         let read_idx = old_tail.to_usize();
 
-        // Until the writing in the slot completes, spin
-        while !self.markers.is_not_being_written(read_idx) {
-            if self.markers.invalidated.load(Ordering::Relaxed) {
-                return None;
+        // Phase 1: wait for pusher to finish writing
+        loop {
+            if self.markers.invalidated.load(Ordering::Relaxed)
+                || self.markers.is_not_being_written(read_idx)
+            {
+                break;
             }
             std::hint::spin_loop();
         }
 
-        // Read from the read index and init the value
-        // FIXME: RACE Condition -- if a new thread writes onto read_idx(which it can because tail
-        // has incremented, and the register flag hasn't been implemeneted yet) before the following lines
-        // are executed, there can be a read & write on the same exact memory slot at the same time
-        // TOTAL MEMORY CORRUPTION -- Fix the architecture. Might be a complete change.
+        // Phase 2: claim slot for reading, then read
+        self.markers
+            .update_read_mask(read_idx, Ordering::Release, BitFlip::Register);
+
         unsafe {
             let ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_idx);
-            self.markers
-                .update_read_mask(read_idx, Ordering::Relaxed, BitFlip::Register);
             let val = std::ptr::read(ptr);
             *ptr = MaybeUninit::uninit();
             self.markers
