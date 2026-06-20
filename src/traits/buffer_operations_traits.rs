@@ -11,8 +11,8 @@ use crate::{
 
 // The type of operation that the queue performs for common operations like push/pop
 pub trait BufferOperation<T> {
-    fn push(&mut self, val: T) -> Option<T>; // To push a val
-    fn pop(&mut self) -> Option<T>; // To pop a val
+    fn push(&self, val: T) -> Option<T>; // To push a val
+    fn pop(&self) -> Option<T>; // To pop a val
 }
 
 impl<T, const N: usize> BufferOperation<T> for BufferQueue<T, SPSC, N>
@@ -20,11 +20,11 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
-    fn push(&mut self, val: T) -> Option<T> {
+    fn push(&self, val: T) -> Option<T> {
         self._sp_push(val)
     }
 
-    fn pop(&mut self) -> Option<T> {
+    fn pop(&self) -> Option<T> {
         self._sc_pop()
     }
 }
@@ -34,11 +34,11 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
-    fn push(&mut self, val: T) -> Option<T> {
+    fn push(&self, val: T) -> Option<T> {
         self._sp_push(val)
     }
 
-    fn pop(&mut self) -> Option<T> {
+    fn pop(&self) -> Option<T> {
         self._mc_pop()
     }
 }
@@ -48,11 +48,11 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
-    fn push(&mut self, val: T) -> Option<T> {
+    fn push(&self, val: T) -> Option<T> {
         self._mp_push(val)
     }
 
-    fn pop(&mut self) -> Option<T> {
+    fn pop(&self) -> Option<T> {
         self._sc_pop()
     }
 }
@@ -62,11 +62,11 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
-    fn push(&mut self, val: T) -> Option<T> {
+    fn push(&self, val: T) -> Option<T> {
         self._mp_push(val)
     }
 
-    fn pop(&mut self) -> Option<T> {
+    fn pop(&self) -> Option<T> {
         self._mc_pop()
     }
 }
