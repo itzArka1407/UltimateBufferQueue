@@ -3,9 +3,10 @@ use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, O
 use crate::helper_traits::{MarkerAtomicOperations, MarkerData};
 const ATOMIC_ZERO: AtomicU8 = AtomicU8::new(0); // Used to init the bit flags
 
+// Marking the state of a bit in the mask -- 0 for free state, 1 for busy
 pub(crate) enum BitFlip {
-    Register,   // Bit -> 1 -- register write state
-    Unregister, // Bit -> 0 -- unregister write state
+    Register,   // Bit -> 1 -- register busy state
+    Unregister, // Bit -> 0 -- unregister busy state
 }
 
 // Create the markers for the buffer queue, head/tail moves on insertion

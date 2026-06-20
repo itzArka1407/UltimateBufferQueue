@@ -14,5 +14,5 @@ where
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
     pub(crate) buf: BufferQueue<T, M, N>,
-    pub(crate) waker: AtomicWaker,
+    pub(crate) waker: M::Notify,
 }
