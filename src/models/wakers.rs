@@ -6,7 +6,7 @@ use std::{
 };
 
 pub struct SingleWaker {
-    waker: AtomicWaker,
+    pub waker: AtomicWaker,
 }
 impl SingleWaker {
     pub fn register(&self, cx: &mut Context<'_>) {
@@ -18,7 +18,7 @@ impl SingleWaker {
 }
 
 pub struct MultiWaker {
-    wakers: Mutex<VecDeque<Waker>>,
+    pub wakers: Mutex<VecDeque<Waker>>,
 }
 
 impl MultiWaker {
