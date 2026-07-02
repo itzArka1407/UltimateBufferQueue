@@ -8,7 +8,7 @@ use tokio::sync::Notify;
 
 pub trait Notifier {
     fn new() -> Self; // Create a new notifier
-    fn notify_one(&self); // Notify once
+    fn notify(&self); // Notify once
     fn register(&self, cx: &mut Context<'_>);
 }
 
@@ -18,7 +18,7 @@ impl Notifier for AtomicWaker {
         Self::new()
     }
 
-    fn notify_one(&self) {
+    fn notify(&self) {
         self.wake();
     }
 
@@ -32,7 +32,7 @@ impl Notifier for Notify {
         Self::new()
     }
 
-    fn notify_one(&self) {
+    fn notify(&self) {
         self.notify_one();
     }
 

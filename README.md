@@ -11,7 +11,7 @@ Safe as-is:
 BROKEN as currently designed:
 - SPMC / MPMC: multiple receivers can be parked waiting simultaneously.
   Each call to `register()` overwrites the previous receiver's stored Waker.
-  `notify_one()` only wakes the most recently registered receiver — any
+  `notify()` only wakes the most recently registered receiver — any
   earlier-registered receiver is silently forgotten and may hang forever,
   even if data becomes available, unless a later unrelated push happens to
   wake it.
@@ -27,7 +27,7 @@ Multi-receiver modes need a FIFO multi-waker structure instead of
         inner: Mutex<VecDeque<Waker>>,
     }
     // register() -> push_back
-    // notify_one() -> pop_front + wake()
+    // notify() -> pop_front + wake()
 
 This must be heap-backed (`VecDeque`) since the number of simultaneously
 parked receivers is unbounded at compile time — this is unavoidable for

@@ -46,19 +46,24 @@ where
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let val = self.val.take().expect("polled after completion");
+        let val = self
+            .val
+            .take()
+            .expect("[UBQ - SendFuture] polled after completion");
         match self.channel.buf.push(val) {
+            // No return -- the push has happened
             None => {
-                self.channel.waker.notify_one();
+                self.channel.waker.notify();
                 Poll::Ready(())
             }
+            // Value returned back -- the pushing failed
             Some(v) => {
                 self.val = Some(v);
                 self.channel.waker.register(cx);
                 // re-check after registering -- a slot may have freed in the gap
                 match self.channel.buf.push(self.val.take().unwrap()) {
                     None => {
-                        self.channel.waker.notify_one();
+                        self.channel.waker.notify();
                         Poll::Ready(())
                     }
                     Some(v) => {

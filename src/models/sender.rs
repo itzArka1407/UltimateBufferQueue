@@ -67,7 +67,7 @@ where
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
             None => {
-                self.channel.waker.notify_one();
+                self.channel.waker.notify();
                 Ok(())
             }
             Some(v) => Err(v),
@@ -92,7 +92,7 @@ where
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
             None => {
-                self.channel.waker.notify_one();
+                self.channel.waker.notify();
                 Ok(())
             }
             Some(v) => Err(v),
@@ -117,7 +117,7 @@ where
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
             None => {
-                self.channel.waker.notify_one();
+                self.channel.waker.notify();
                 Ok(())
             }
             Some(v) => Err(v),
@@ -142,7 +142,7 @@ where
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
             None => {
-                self.channel.waker.notify_one();
+                self.channel.waker.notify();
                 Ok(())
             }
             Some(v) => Err(v),

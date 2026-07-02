@@ -64,7 +64,7 @@ where
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
         if val.is_some() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
         }
         val
     }
@@ -86,7 +86,7 @@ where
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
         if val.is_some() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
         }
         val
     }
@@ -108,7 +108,7 @@ where
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
         if val.is_some() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
         }
         val
     }
@@ -130,7 +130,7 @@ where
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
         if val.is_some() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
         }
         val
     }

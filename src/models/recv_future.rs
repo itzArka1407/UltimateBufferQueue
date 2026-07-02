@@ -35,12 +35,13 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<T> {
         if let Some(val) = self.channel.buf.pop() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
             return Poll::Ready(val);
         }
+        // Reattempt to prevent TOCTOU race: Time of checking of pop & Time of register(cx)
         self.channel.waker.register(cx);
         if let Some(val) = self.channel.buf.pop() {
-            self.channel.waker.notify_one();
+            self.channel.waker.notify();
             return Poll::Ready(val);
         }
         Poll::Pending
