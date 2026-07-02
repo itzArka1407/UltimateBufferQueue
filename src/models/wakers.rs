@@ -29,4 +29,9 @@ impl MultiWaker {
             wakers.push_back(cx.waker().clone());
         }
     }
+    pub fn notify(&self) {
+        if let Some(w) = self.wakers.lock().pop_front() {
+            w.wake();
+        }
+    }
 }

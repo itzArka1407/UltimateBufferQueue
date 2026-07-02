@@ -8,15 +8,7 @@ pub struct SPMC; // Single producer, multiple consumer
 pub struct MPSC; // Multiple producer, single consumer
 pub struct MPMC; // Multiple producer, multiple consumer
 
-impl BufferMode for SPSC {
-    type Notify = AtomicWaker;
-}
-impl BufferMode for SPMC {
-    type Notify = AtomicWaker;
-}
-impl BufferMode for MPSC {
-    type Notify = AtomicWaker;
-}
-impl BufferMode for MPMC {
-    type Notify = Notify;
-}
+impl BufferMode for SPSC {}
+impl BufferMode for SPMC {}
+impl BufferMode for MPSC {}
+impl BufferMode for MPMC {}
