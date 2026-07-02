@@ -4,7 +4,6 @@
 use std::task::Context;
 
 use atomic_waker::AtomicWaker;
-use tokio::sync::Notify;
 
 pub trait Notifier {
     fn new() -> Self; // Create a new notifier
@@ -24,19 +23,5 @@ impl Notifier for AtomicWaker {
 
     fn register(&self, cx: &mut Context<'_>) {
         self.register(cx.waker());
-    }
-}
-
-impl Notifier for Notify {
-    fn new() -> Self {
-        Self::new()
-    }
-
-    fn notify(&self) {
-        self.notify_one();
-    }
-
-    fn register(&self, cx: &mut Context<'_>) {
-        // Not exposed by tokio -- manually done
     }
 }
