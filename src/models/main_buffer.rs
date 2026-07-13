@@ -49,11 +49,11 @@ where
     #[inline(always)]
     pub(crate) fn _sp_push(&self, val: T) -> Option<T> {
         // let val = ManuallyDrop::new(val);
-        let write_slot = self.markers.head.load(Ordering::Relaxed).to_usize();
+        let write_slot = self.markers.head.0.load(Ordering::Relaxed).to_usize();
         let next = (write_slot + 1) % N;
 
         // Buffer full | invalidated | read going on at that index
-        if next == self.markers.tail.load(Ordering::Acquire).to_usize()
+        if next == self.markers.tail.0.load(Ordering::Acquire).to_usize()
             || self.markers.invalidated.load(Ordering::Relaxed)
             || !self.markers.is_not_being_read(write_slot)
         {
@@ -70,6 +70,7 @@ where
                 .update_write_mask(write_slot, Ordering::Release, BitFlip::Unregister);
             self.markers
                 .head
+                .0
                 .store(OutputTrait::from_usize(next), Ordering::Release);
         }
         None
@@ -79,12 +80,12 @@ where
     pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
         // let val = ManuallyDrop::new(val);
 
-        let old_head = match self.markers.head.fetch_update(
+        let old_head = match self.markers.head.0.fetch_update(
             Ordering::AcqRel,
             Ordering::Acquire,
             |write_slot| {
                 let next = write_slot.wrapping_increment(N);
-                if next.to_usize() == self.markers.tail.load(Ordering::Acquire).to_usize()
+                if next.to_usize() == self.markers.tail.0.load(Ordering::Acquire).to_usize()
                     || self.markers.invalidated.load(Ordering::Relaxed)
                 {
                     return None;
@@ -122,9 +123,9 @@ where
 
     #[inline(always)]
     pub(crate) fn _sc_pop(&self) -> Option<T> {
-        let read_slot = self.markers.tail.load(Ordering::Relaxed).to_usize();
+        let read_slot = self.markers.tail.0.load(Ordering::Relaxed).to_usize();
 
-        if read_slot == self.markers.head.load(Ordering::Acquire).to_usize()
+        if read_slot == self.markers.head.0.load(Ordering::Acquire).to_usize()
             || self.markers.invalidated.load(Ordering::Relaxed)
             || !self.markers.is_not_being_written(read_slot)
         {
@@ -141,7 +142,7 @@ where
             *read_ptr = MaybeUninit::uninit();
             self.markers
                 .update_read_mask(read_slot, Ordering::Release, BitFlip::Unregister);
-            self.markers.tail.store(
+            self.markers.tail.0.store(
                 OutputTrait::from_usize((read_slot + 1) % N),
                 Ordering::Release,
             );
@@ -154,8 +155,9 @@ where
         let old_tail = self
             .markers
             .tail
+            .0
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |read_slot| {
-                if read_slot.to_usize() == self.markers.head.load(Ordering::Acquire).to_usize()
+                if read_slot.to_usize() == self.markers.head.0.load(Ordering::Acquire).to_usize()
                     || self.markers.invalidated.load(Ordering::Relaxed)
                 {
                     return None;

@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 
+use crate::helper_models::cache_aligned_type::CacheAligned;
 use crate::helper_traits::{MarkerAtomicOperations, MarkerData};
 const ATOMIC_ZERO: AtomicU8 = AtomicU8::new(0); // Used to init the bit flags
 
@@ -15,8 +16,8 @@ pub(crate) struct BufferMarkers<
     MarkerType: Default + MarkerAtomicOperations,
     const MASK_SIZE: usize,
 > {
-    pub head: MarkerType,                  // The buffer's head index
-    pub tail: MarkerType,                  // The buffer's tail index
+    pub head: CacheAligned<MarkerType>,    // The buffer's head index
+    pub tail: CacheAligned<MarkerType>,    // The buffer's tail index
     pub invalidated: AtomicBool,           // If the buffer is invalidated
     pub write_mask: [AtomicU8; MASK_SIZE], // The mask to represent write-state
     pub read_mask: [AtomicU8; MASK_SIZE],  // The mask to represent write-state
@@ -26,8 +27,8 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
     #[inline]
     pub fn new() -> Self {
         Self {
-            head: M::default(),
-            tail: M::default(),
+            head: CacheAligned::default(),
+            tail: CacheAligned::default(),
             invalidated: AtomicBool::default(),
             write_mask: [ATOMIC_ZERO; M_SIZE],
             read_mask: [ATOMIC_ZERO; M_SIZE],

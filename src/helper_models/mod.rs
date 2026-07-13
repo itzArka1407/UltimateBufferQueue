@@ -1,1 +1,1 @@
-mod cache_aligned_type;
+pub(crate) mod cache_aligned_type;

@@ -11,4 +11,5 @@
     )),
     repr(align(64)) // Safe fallback for cache
 )]
-pub struct CacheAligned<T>(pub T);
+#[derive(Default)]
+pub struct CacheAligned<T: Default>(pub T);
