@@ -99,6 +99,7 @@ where
 
         let write_idx = old_head.to_usize();
 
+        let mut spins = 0u8;
         loop {
             if self.markers.invalidated.load(Ordering::Relaxed) {
                 return Some(val);
@@ -106,7 +107,16 @@ where
             if self.markers.is_not_being_read(write_idx) {
                 break;
             }
-            std::hint::spin_loop();
+
+            // For short waits, spin the loop continuously(needed for hot-paths)
+            if spins < 32 {
+                std::hint::spin_loop();
+                spins += 1;
+            } else {
+                // Waited for long, yield the thread
+                std::thread::yield_now();
+                spins = 0;
+            }
         }
 
         self.markers
@@ -168,14 +178,24 @@ where
 
         let read_idx = old_tail.to_usize();
 
-        // Phase 1: wait for pusher to finish writing
+        // Wait for the pusher to finish pushing
+        let mut spins = 0u8;
         loop {
             if self.markers.invalidated.load(Ordering::Relaxed)
                 || self.markers.is_not_being_written(read_idx)
             {
                 break;
             }
-            std::hint::spin_loop();
+
+            // For short waits, spin the loop continuously(needed for hot-paths)
+            if spins < 32 {
+                std::hint::spin_loop();
+                spins += 1;
+            } else {
+                // Waited for long, yield the thread
+                std::thread::yield_now();
+                spins = 0;
+            }
         }
 
         // Phase 2: claim slot for reading, then read
