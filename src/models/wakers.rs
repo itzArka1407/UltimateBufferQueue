@@ -2,6 +2,7 @@ use atomic_waker::AtomicWaker;
 use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
+    sync::atomic::{AtomicBool, Ordering},
     task::{Context, Waker},
 };
 
@@ -18,19 +19,28 @@ impl SingleWaker {
 }
 
 pub struct MultiWaker {
+    pub any_parked: AtomicBool, // If any waker in the list of wakers is parked
     pub wakers: Mutex<VecDeque<Waker>>,
 }
 
 impl MultiWaker {
     pub fn register(&self, cx: &mut Context<'_>) {
-        let mut wakers = self.wakers.lock();
-        // avoid duplicate registration from the same task
-        if !wakers.iter().any(|w| w.will_wake(cx.waker())) {
-            wakers.push_back(cx.waker().clone());
-        }
+        self.wakers.lock().push_back(cx.waker().clone());
+        self.any_parked.store(true, Ordering::Relaxed); // Mark the waker as parked
     }
+
     pub fn notify(&self) {
-        if let Some(w) = self.wakers.lock().pop_front() {
+        if !self.any_parked.load(Ordering::Relaxed) {
+            return; // No waker parked, so can't notify on any end
+        }
+
+        let mut wakers = self.wakers.lock();
+        if let Some(w) = wakers.pop_front() {
+            // No more wakers are waiting, the notifications operation are closed now
+            if wakers.is_empty() {
+                self.any_parked.store(false, Ordering::Relaxed);
+            }
+            // Wake the extracted waker
             w.wake();
         }
     }

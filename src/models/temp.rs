@@ -1,6 +1,6 @@
 // To be transferred under main buffer
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::atomic::AtomicBool};
 
 use atomic_waker::AtomicWaker;
 use parking_lot::Mutex;
@@ -52,6 +52,7 @@ where
     let channel = Arc::new(SpmcChannel {
         buf: BufferQueue::new(),
         recv_waker: MultiWaker {
+            any_parked: AtomicBool::new(false),
             wakers: Mutex::new(VecDeque::new()),
         },
         send_waker: SingleWaker {
@@ -77,6 +78,7 @@ where
             waker: AtomicWaker::new(),
         },
         send_waker: MultiWaker {
+            any_parked: AtomicBool::new(false),
             wakers: Mutex::new(VecDeque::new()),
         },
     });
@@ -96,9 +98,11 @@ where
     let channel = Arc::new(MpmcChannel {
         buf: BufferQueue::new(),
         recv_waker: MultiWaker {
+            any_parked: AtomicBool::new(false),
             wakers: Mutex::new(VecDeque::new()),
         },
         send_waker: MultiWaker {
+            any_parked: AtomicBool::new(false),
             wakers: Mutex::new(VecDeque::new()),
         },
     });

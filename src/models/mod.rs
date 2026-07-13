@@ -1,11 +1,11 @@
 mod main_buffer;
 pub use main_buffer::BufferQueue;
 pub mod buffer_modes;
-mod channels;
+pub(crate) mod channels;
 pub mod helper_models;
 pub(crate) mod send_recv_futures;
 mod send_recv_futures_impl;
-mod senders_receivers;
+pub(crate) mod senders_receivers;
 pub mod sending_receiving_opns;
 mod temp;
-mod wakers;
+pub(crate) mod wakers;

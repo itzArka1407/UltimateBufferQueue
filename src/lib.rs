@@ -2,6 +2,7 @@
 #![allow(incomplete_features, unused, private_bounds)]
 
 mod helper_functions;
+pub(crate) mod helper_models;
 pub mod helper_traits;
 pub mod models;
 pub(crate) mod traits;
