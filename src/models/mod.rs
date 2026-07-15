@@ -5,7 +5,9 @@ pub(crate) mod channels;
 pub mod helper_models;
 pub(crate) mod send_recv_futures;
 mod send_recv_futures_impl;
-pub(crate) mod senders_receivers;
+pub mod senders_receivers;
 pub mod sending_receiving_opns;
 mod temp;
 pub(crate) mod wakers;
+
+pub use channels::{MpmcChannel, MpscChannel, SpmcChannel, SpscChannel};

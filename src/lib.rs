@@ -9,3 +9,5 @@ pub(crate) mod traits;
 
 #[cfg(test)]
 mod tests;
+
+pub use models::{MpmcChannel, MpscChannel, SpmcChannel, SpscChannel};
