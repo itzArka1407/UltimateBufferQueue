@@ -17,7 +17,7 @@ pub(crate) trait MarkerAtomicOperations {
     fn store(&self, val: Self::OutputItem, order: Ordering);
     fn fetch_add(&self, val: usize, order: Ordering) -> usize;
 
-    fn fetch_update(
+    fn try_update(
         &self,
         set_order: Ordering,
         fetch_order: Ordering,

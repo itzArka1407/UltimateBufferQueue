@@ -119,13 +119,13 @@ impl MarkerAtomicOperations for AtomicU8 {
         self.fetch_add(val as u8, order) as usize
     }
 
-    fn fetch_update(
+    fn try_update(
         &self,
         set_order: Ordering,
         fetch_order: Ordering,
         f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
     ) -> Result<u8, u8> {
-        self.fetch_update(set_order, fetch_order, f)
+        self.try_update(set_order, fetch_order, f)
     }
 }
 
@@ -144,13 +144,13 @@ impl MarkerAtomicOperations for AtomicU16 {
         self.fetch_add(val as u16, order) as usize
     }
 
-    fn fetch_update(
+    fn try_update(
         &self,
         set_order: Ordering,
         fetch_order: Ordering,
         f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
     ) -> Result<Self::OutputItem, Self::OutputItem> {
-        self.fetch_update(set_order, fetch_order, f)
+        self.try_update(set_order, fetch_order, f)
     }
 }
 
@@ -169,13 +169,13 @@ impl MarkerAtomicOperations for AtomicU32 {
         self.fetch_add(val as u32, order) as usize
     }
 
-    fn fetch_update(
+    fn try_update(
         &self,
         set_order: Ordering,
         fetch_order: Ordering,
         f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
     ) -> Result<Self::OutputItem, Self::OutputItem> {
-        self.fetch_update(set_order, fetch_order, f)
+        self.try_update(set_order, fetch_order, f)
     }
 }
 
@@ -194,12 +194,12 @@ impl MarkerAtomicOperations for AtomicU64 {
         self.fetch_add(val as u64, order) as usize
     }
 
-    fn fetch_update(
+    fn try_update(
         &self,
         set_order: Ordering,
         fetch_order: Ordering,
         f: impl FnMut(Self::OutputItem) -> Option<Self::OutputItem>,
     ) -> Result<Self::OutputItem, Self::OutputItem> {
-        self.fetch_update(set_order, fetch_order, f)
+        self.try_update(set_order, fetch_order, f)
     }
 }

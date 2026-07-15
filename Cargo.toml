@@ -12,3 +12,12 @@ atomic-waker = "1.1.2"
 parking_lot = "0.12.5"
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "signal", "net", "sync"] }
 triomphe = "0.1.15"
+
+[dev-dependencies]
+criterion = { version = "0.8.2", features = ["async_tokio"] }
+crossbeam-queue = "0.3.13"
+flume = "0.12.0"
+
+[[bench]]
+name = "comparison"
+harness = false

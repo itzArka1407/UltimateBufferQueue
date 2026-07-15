@@ -10,4 +10,4 @@ pub mod sending_receiving_opns;
 mod temp;
 pub(crate) mod wakers;
 
-pub use channels::{MpmcChannel, MpscChannel, SpmcChannel, SpscChannel};
+pub use temp::{mpmc_channel, mpsc_channel, spmc_channel, spsc_channel};

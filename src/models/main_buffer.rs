@@ -26,6 +26,19 @@ where
     _mode: PhantomData<Mode>,
 }
 
+unsafe impl<T: Send, Mode: BufferMode, const N: usize> Sync for BufferQueue<T, Mode, N>
+where
+    [(); determine_flag_size(N, 8)]: Sized,
+    MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
+{
+}
+unsafe impl<T: Send, Mode: BufferMode, const N: usize> Send for BufferQueue<T, Mode, N>
+where
+    [(); determine_flag_size(N, 8)]: Sized,
+    MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
+{
+}
+
 impl<T, M: BufferMode, const N: usize> BufferQueue<T, M, N>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -80,7 +93,7 @@ where
     pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
         // let val = ManuallyDrop::new(val);
 
-        let old_head = match self.markers.head.0.fetch_update(
+        let old_head = match self.markers.head.0.try_update(
             Ordering::AcqRel,
             Ordering::Acquire,
             |write_slot| {
@@ -166,7 +179,7 @@ where
             .markers
             .tail
             .0
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |read_slot| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |read_slot| {
                 if read_slot.to_usize() == self.markers.head.0.load(Ordering::Acquire).to_usize()
                     || self.markers.invalidated.load(Ordering::Relaxed)
                 {
