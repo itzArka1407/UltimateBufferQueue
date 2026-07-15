@@ -25,8 +25,12 @@ pub struct MultiWaker {
 
 impl MultiWaker {
     pub fn register(&self, cx: &mut Context<'_>) {
-        self.wakers.lock().push_back(cx.waker().clone());
-        self.any_parked.store(true, Ordering::Relaxed); // Mark the waker as parked
+        let mut wakers = self.wakers.lock();
+        // Check if some other waker is registered for the same task(no registration then)
+        if !wakers.iter().any(|w| w.will_wake(cx.waker())) {
+            wakers.push_back(cx.waker().clone());
+            self.any_parked.store(true, Ordering::Relaxed);
+        }
     }
 
     pub fn notify(&self) {
