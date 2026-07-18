@@ -61,7 +61,6 @@ where
 
     #[inline(always)]
     pub(crate) fn _sp_push(&self, val: T) -> Option<T> {
-        // let val = ManuallyDrop::new(val);
         let write_slot = self.markers.head.0.load(Ordering::Relaxed).to_usize();
         let next = (write_slot + 1) % N;
 
@@ -91,8 +90,6 @@ where
 
     #[inline(always)]
     pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
-        // let val = ManuallyDrop::new(val);
-
         let old_head = match self.markers.head.0.try_update(
             Ordering::AcqRel,
             Ordering::Acquire,
@@ -157,7 +154,7 @@ where
 
         // Claim slot before pusher can wrap around into it
         self.markers
-            .update_read_mask(read_slot, Ordering::Release, BitFlip::Register);
+            .update_read_mask(read_slot, Ordering::Relaxed, BitFlip::Register);
 
         unsafe {
             let read_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_slot);
@@ -194,10 +191,11 @@ where
         // Wait for the pusher to finish pushing
         let mut spins = 0u8;
         loop {
-            if self.markers.invalidated.load(Ordering::Relaxed)
-                || self.markers.is_not_being_written(read_idx)
-            {
-                break;
+            if self.markers.invalidated.load(Ordering::Relaxed) {
+                return None; // Already invalidated, move back
+            }
+            if self.markers.is_not_being_written(read_idx) {
+                break; // Not being written, free to write now
             }
 
             // For short waits, spin the loop continuously(needed for hot-paths)

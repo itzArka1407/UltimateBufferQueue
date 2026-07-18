@@ -20,7 +20,7 @@ pub(crate) struct BufferMarkers<
     pub tail: CacheAligned<MarkerType>,    // The buffer's tail index
     pub invalidated: AtomicBool,           // If the buffer is invalidated
     pub write_mask: [AtomicU8; MASK_SIZE], // The mask to represent write-state
-    pub read_mask: [AtomicU8; MASK_SIZE],  // The mask to represent write-state
+    pub read_mask: [AtomicU8; MASK_SIZE],  // The mask to represent read-state
 }
 
 impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, M_SIZE> {

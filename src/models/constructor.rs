@@ -1,5 +1,4 @@
 // To be transferred under main buffer
-
 use std::{collections::VecDeque, sync::atomic::AtomicBool};
 
 use atomic_waker::AtomicWaker;
@@ -19,7 +18,6 @@ use crate::{
         },
         wakers::{MultiWaker, SingleWaker},
     },
-    traits::notifier::Notifier,
 };
 
 pub fn spsc_channel<T, const N: usize>() -> (SpscSender<T, N>, SpscReceiver<T, N>)
