@@ -1,0 +1,56 @@
+
+running 2 tests
+test tests::check_types ... ignored
+test tests::size_tests::check_size ... ignored
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+mpsc_throughput_10k_msgs/buffer_queue::mpsc
+                        time:   [1.2766 ms 1.3056 ms 1.3344 ms]
+                        change: [+12.189% +16.364% +20.523%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) low mild
+mpsc_throughput_10k_msgs/tokio::sync::mpsc
+                        time:   [1.1903 ms 1.2381 ms 1.2806 ms]
+                        change: [−17.178% −14.477% −11.850%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+mpsc_throughput_10k_msgs/flume::bounded
+                        time:   [1.2907 ms 1.3302 ms 1.3671 ms]
+                        change: [−7.2866% −2.9794% +1.6237%] (p = 0.21 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+
+spsc_ping_pong_1k_roundtrips/buffer_queue::spsc
+                        time:   [494.54 µs 501.19 µs 508.19 µs]
+                        change: [+3.3857% +5.1670% +6.9097%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+spsc_ping_pong_1k_roundtrips/tokio::sync::mpsc (as spsc)
+                        time:   [577.79 µs 588.78 µs 599.84 µs]
+                        change: [−0.8053% +0.8065% +2.5179%] (p = 0.35 > 0.05)
+                        No change in performance detected.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+sync_try_send_recv_1024_items/buffer_queue::mpsc (try_send/try_recv)
+                        time:   [21.748 µs 21.887 µs 22.073 µs]
+                        change: [−5.9972% −2.3539% +1.8009%] (p = 0.24 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+sync_try_send_recv_1024_items/crossbeam::ArrayQueue
+                        time:   [8.8343 µs 8.8372 µs 8.8405 µs]
+                        change: [−0.0048% +0.0650% +0.1395%] (p = 0.08 > 0.05)
+                        No change in performance detected.
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+

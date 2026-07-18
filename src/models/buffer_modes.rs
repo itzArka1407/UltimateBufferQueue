@@ -1,5 +1,4 @@
 use atomic_waker::AtomicWaker;
-use tokio::sync::Notify;
 
 use crate::traits::buffer_mode_traits::BufferMode;
 
