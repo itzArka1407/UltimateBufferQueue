@@ -1,10 +1,13 @@
 //! The constructors of all the different channels are defined here. The user directly constructs
 //! these channels. These are the first things to be created to be used by the user
+use alloc::collections::VecDeque;
 use core::sync::atomic::AtomicBool;
-use std::collections::VecDeque;
 
 use atomic_waker::AtomicWaker;
+#[cfg(feature = "std")]
 use parking_lot::Mutex;
+#[cfg(not(feature = "std"))]
+use spin::Mutex;
 use triomphe::Arc;
 
 use crate::{

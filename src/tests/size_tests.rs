@@ -14,6 +14,7 @@ fn check_size() {
     dbg!(core::mem::size_of::<AtomicWaker>());
     dbg!(core::mem::size_of::<Notify>());
     dbg!(core::mem::size_of::<MultiWaker>());
+    #[cfg(feature = "std")]
     dbg!(core::mem::size_of::<parking_lot::Mutex<u8>>());
     dbg!(core::mem::size_of::<SpscChannel<(), 0>>());
 

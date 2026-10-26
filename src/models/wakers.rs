@@ -4,8 +4,14 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
     task::{Context, Waker},
 };
+
+#[cfg(not(feature = "std"))]
+use spin::Mutex;
+
+#[cfg(feature = "std")]
 use parking_lot::Mutex;
-use std::collections::VecDeque;
+
+use alloc::collections::VecDeque;
 
 /// A single waker for a single receiver
 pub struct SingleWaker {

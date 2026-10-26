@@ -80,7 +80,7 @@ where
 
         unsafe {
             let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_slot);
-            std::ptr::write(write_ptr, MaybeUninit::new(val));
+            core::ptr::write(write_ptr, MaybeUninit::new(val));
             self.markers
                 .update_write_mask(write_slot, Ordering::Release, BitFlip::Unregister);
             self.markers
@@ -122,15 +122,7 @@ where
                 break;
             }
 
-            // For short waits, spin the loop continuously(needed for hot-paths)
-            if spins < 32 {
-                std::hint::spin_loop();
-                spins += 1;
-            } else {
-                // Waited for long, yield the thread
-                std::thread::yield_now();
-                spins = 0;
-            }
+            Self::backoff(&mut spins);
         }
 
         self.markers
@@ -138,7 +130,7 @@ where
 
         unsafe {
             let write_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(write_idx);
-            std::ptr::write(write_ptr, MaybeUninit::new(val));
+            core::ptr::write(write_ptr, MaybeUninit::new(val));
             self.markers
                 .update_write_mask(write_idx, Ordering::Release, BitFlip::Unregister);
         }
@@ -163,7 +155,7 @@ where
 
         unsafe {
             let read_ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_slot);
-            let val = std::ptr::read(read_ptr);
+            let val = core::ptr::read(read_ptr);
             *read_ptr = MaybeUninit::uninit();
             self.markers
                 .update_read_mask(read_slot, Ordering::Release, BitFlip::Unregister);
@@ -203,16 +195,7 @@ where
             if self.markers.is_not_being_written(read_idx) {
                 break; // Not being written, free to write now
             }
-
-            // For short waits, spin the loop continuously(needed for hot-paths)
-            if spins < 32 {
-                std::hint::spin_loop();
-                spins += 1;
-            } else {
-                // Waited for long, yield the thread
-                std::thread::yield_now();
-                spins = 0;
-            }
+            Self::backoff(&mut spins);
         }
 
         // Phase 2: claim slot for reading, then read
@@ -221,7 +204,7 @@ where
 
         unsafe {
             let ptr = (self.buf.get() as *mut MaybeUninit<T>).add(read_idx);
-            let val = std::ptr::read(ptr);
+            let val = core::ptr::read(ptr);
             *ptr = MaybeUninit::uninit();
             self.markers
                 .update_read_mask(read_idx, Ordering::Release, BitFlip::Unregister);
@@ -233,5 +216,22 @@ where
     #[inline(always)]
     pub fn invalidate(&self) {
         self.markers.invalidated.store(true, Ordering::Release);
+    }
+
+    /// Backing off a thread from spinning
+    #[inline(always)]
+    fn backoff(spins: &mut u8) {
+        // For short waits, spin the loop continuously(needed for hot-paths)
+        if *spins < 32 {
+            core::hint::spin_loop();
+            *spins += 1;
+        } else {
+            // Waited for long, yield the thread(only in std environment)
+            #[cfg(feature = "std")]
+            std::thread::yield_now();
+            #[cfg(not(feature = "std"))]
+            core::hint::spin_loop();
+            *spins = 0;
+        }
     }
 }
