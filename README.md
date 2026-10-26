@@ -3,8 +3,15 @@
 A lock-free, fixed-capacity, async-aware channel library for Rust, supporting all four
 producer/consumer topologies: SPSC, SPMC, MPSC, and MPMC.
 
-The buffer core is fully heapless and stack-allocatable. Async wakeup is layered on top
-via `AtomicWaker` (single-waiter sides) and `parking_lot::Mutex<VecDeque<Waker>>` (multi-waiter sides), keeping the hot push/pop path free of any locking.
+### Includes:
+- `no_std` support (currently does heap allocation using alloc crate and uses mutex(parking_lot for std environment, spin for no_std))
+    - has `std`feature turned on by default, so to use in a no_std environment, use:
+```rust
+cargo add buffer-queue --no-default-features
+```
+
+The buffer core is fully heapless and stack-allocatable(almost done). Async wakeup is layered on top
+via `AtomicWaker` (single-waiter sides) and `parking_lot/spin::Mutex<VecDeque<Waker>>` (multi-waker sides), keeping the hot push/pop path free of any locking.
 
 Requires nightly Rust (`#![feature(generic_const_exprs)]`) — not possible to implement
 this API shape on stable yet.
@@ -100,7 +107,7 @@ read_mask  bit = 1  →  popper is actively reading this slot
 | 1     | 1    | impossible by construction                   |
 
 **Push protocol:**
-1. Atomically claim `head` slot (SP: relaxed load + store; MP: `fetch_update`)
+1. Atomically claim `head` slot (SP: relaxed load + store; MP: `try_update`)
 2. Spin on `read_mask` until slot is not being read (wrap-around protection)
 3. Register `write_mask` bit
 4. `ptr::write` into the slot
@@ -108,7 +115,7 @@ read_mask  bit = 1  →  popper is actively reading this slot
 6. Advance `head` (SP only — MP already advanced it in step 1)
 
 **Pop protocol:**
-1. Atomically claim `tail` slot (SC: relaxed load + store; MC: `fetch_update`)
+1. Atomically claim `tail` slot (SC: relaxed load + store; MC: `try_update`)
 2. Spin on `write_mask` until slot is not being written
 3. Register `read_mask` bit
 4. `ptr::read` from the slot, wipe with `MaybeUninit::uninit()`
@@ -121,7 +128,7 @@ read_mask  bit = 1  →  popper is actively reading this slot
 | -------------------------------------- | --------------------- | ---------------------------------- |
 | `head`/`tail` load (own side, SP/SC)   | `Relaxed`             | No contention, single owner       |
 | `head`/`tail` load (other side)        | `Acquire`             | Must see latest advances          |
-| `fetch_update` on head/tail (MP/MC)    | `AcqRel` / `Acquire`  | RMW — read+write in one           |
+| `try_update` on head/tail (MP/MC)    | `AcqRel` / `Acquire`  | RMW — read+write in one           |
 | `write_mask`/`read_mask` Register      | `Relaxed`             | Staking a claim, no data yet      |
 | `write_mask`/`read_mask` Unregister    | `Release`             | Publishes the completed operation |
 
@@ -227,11 +234,11 @@ without the wrap-around bookkeeping) is an open item.
 | `triomphe`     | `Arc` without weak reference count overhead                                    |
 | `atomic-waker` | Single-slot waker storage for SPSC/single-sided wakeup                         |
 | `parking_lot`  | Fast userspace `Mutex` for `MultiWaker` (no poisoning, smaller than `std::Mutex`) |
+| `spin`  | To replace parking_lot::Mutex in `no_std` environment |
 
 ## Not Yet Implemented
 
 - Timeout variants (`send_timeout`, `recv_timeout`)
 - `select!`-compatible API
 - Metrics / instrumentation hooks
-- `no_std` support (currently depends on `std` via `VecDeque`, `parking_lot`)
 - Heap allocation / CPU profiling pass (in progress)
