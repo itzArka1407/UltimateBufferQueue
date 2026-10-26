@@ -1,4 +1,4 @@
-use std::sync::atomic::Ordering;
+use core::sync::atomic::Ordering;
 
 /// This trait determines the type of marker to be used for the buffer queue
 pub trait MarkerData {

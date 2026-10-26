@@ -1,6 +1,6 @@
 use buffer_queue::{mpsc_channel, spsc_channel};
+use core::hint::black_box;
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use tokio::runtime::Runtime;
 
 const CAP: usize = 1024;

@@ -1,5 +1,5 @@
 //! The models which provide various features to the main buffer are defined here
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 
 use crate::helper_models::cache_aligned_type::CacheAligned;
 use crate::helper_traits::{MarkerAtomicOperations, MarkerData};

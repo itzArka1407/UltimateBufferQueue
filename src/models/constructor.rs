@@ -1,6 +1,7 @@
 //! The constructors of all the different channels are defined here. The user directly constructs
 //! these channels. These are the first things to be created to be used by the user
-use std::{collections::VecDeque, sync::atomic::AtomicBool};
+use core::sync::atomic::AtomicBool;
+use std::collections::VecDeque;
 
 use atomic_waker::AtomicWaker;
 use parking_lot::Mutex;

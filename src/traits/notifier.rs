@@ -1,7 +1,7 @@
 // The notifier is defined here. The traits associated are defined. Notifer types are different
 // based on use cases, so common methods are defined by the traits
 
-use std::task::Context;
+use core::task::Context;
 
 use atomic_waker::AtomicWaker;
 

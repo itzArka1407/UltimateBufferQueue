@@ -16,8 +16,8 @@ use crate::{
         helper_models::MarkerTypeDecider,
     },
 };
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::pin::Pin;
+use core::task::{Context, Poll};
 
 // Macros to avoid repetition -- implements the futures required
 

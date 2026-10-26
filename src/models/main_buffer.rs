@@ -6,7 +6,7 @@ use crate::{
     models::helper_models::{BitFlip, BufferMarkers, MarkerTypeDecider},
     traits::buffer_mode_traits::BufferMode,
 };
-use std::{
+use core::{
     cell::UnsafeCell,
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},

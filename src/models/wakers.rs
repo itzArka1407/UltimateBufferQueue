@@ -1,11 +1,11 @@
 //! All the wakers to notify about a sent msg from the receiving end is defined here
 use atomic_waker::AtomicWaker;
-use parking_lot::Mutex;
-use std::{
-    collections::VecDeque,
+use core::{
     sync::atomic::{AtomicBool, Ordering},
     task::{Context, Waker},
 };
+use parking_lot::Mutex;
+use std::collections::VecDeque;
 
 /// A single waker for a single receiver
 pub struct SingleWaker {
