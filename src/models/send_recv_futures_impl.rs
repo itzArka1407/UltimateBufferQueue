@@ -1,3 +1,4 @@
+//! All the futures produced during sending/receiving are defined and implemented here
 use triomphe::Arc;
 
 use crate::models::BufferQueue;
@@ -19,6 +20,8 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 // Macros to avoid repetition -- implements the futures required
+
+/// Implements the sending future for the different types
 macro_rules! impl_send_future {
     ($future:ty, $channel:ty, $buf_mode:ty) => {
         impl<'a, T, const N: usize> Unpin for $future
@@ -65,6 +68,7 @@ macro_rules! impl_send_future {
     };
 }
 
+/// Implements the receiving future for the different types
 macro_rules! impl_recv_future {
     ($future:ty, $channel:ty, $buf_mode:ty) => {
         impl<'a, T, const N: usize> Unpin for $future

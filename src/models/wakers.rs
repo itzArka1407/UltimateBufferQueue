@@ -1,3 +1,4 @@
+//! All the wakers to notify about a sent msg from the receiving end is defined here
 use atomic_waker::AtomicWaker;
 use parking_lot::Mutex;
 use std::{
@@ -6,9 +7,11 @@ use std::{
     task::{Context, Waker},
 };
 
+/// A single waker for a single receiver
 pub struct SingleWaker {
     pub waker: AtomicWaker,
 }
+
 impl SingleWaker {
     pub fn register(&self, cx: &mut Context<'_>) {
         self.waker.register(cx.waker());
@@ -18,6 +21,7 @@ impl SingleWaker {
     }
 }
 
+/// Multiple wakers to depict multiple receivers in a channel
 pub struct MultiWaker {
     pub any_parked: AtomicBool, // If any waker in the list of wakers is parked
     pub wakers: Mutex<VecDeque<Waker>>,

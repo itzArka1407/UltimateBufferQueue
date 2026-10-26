@@ -1,3 +1,4 @@
+//! The different form of channels which are responsible for sending/receiving of messages
 use triomphe::Arc;
 
 use crate::{
@@ -11,6 +12,7 @@ use crate::{
     },
 };
 
+/// A channel to handle a SPSC buffer
 pub struct SpscChannel<T, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -21,6 +23,7 @@ where
     pub(crate) send_waker: SingleWaker,
 }
 
+/// A channel to handle a SPMC buffer
 pub struct SpmcChannel<T, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -31,6 +34,7 @@ where
     pub(crate) send_waker: SingleWaker,
 }
 
+/// A channel to handle a MPSC buffer
 pub struct MpscChannel<T, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -41,6 +45,7 @@ where
     pub(crate) send_waker: MultiWaker,
 }
 
+/// A channel to handle a MPMC buffer
 pub struct MpmcChannel<T, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,

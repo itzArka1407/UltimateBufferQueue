@@ -1,3 +1,4 @@
+//! Defines all the senders and receivers for the different channels to be used
 use triomphe::Arc;
 
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
     },
 };
 
+/// A sender in a spsc channel
 #[repr(transparent)]
 pub struct SpscSender<T, const N: usize>
 where
@@ -18,6 +20,7 @@ where
     pub(crate) channel: Arc<SpscChannel<T, N>>,
 }
 
+/// A receiver in a spsc channel
 #[repr(transparent)]
 pub struct SpscReceiver<T, const N: usize>
 where
@@ -27,6 +30,7 @@ where
     pub(crate) channel: Arc<SpscChannel<T, N>>,
 }
 
+/// A sender in a spsc channel
 #[repr(transparent)]
 pub struct SpmcSender<T, const N: usize>
 where
@@ -36,6 +40,7 @@ where
     pub(crate) channel: Arc<SpmcChannel<T, N>>,
 }
 
+/// A receiver in a spmc channel
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct SpmcReceiver<T, const N: usize>
@@ -46,6 +51,7 @@ where
     pub(crate) channel: Arc<SpmcChannel<T, N>>,
 }
 
+/// A sender in a mpsc channel
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpscSender<T, const N: usize>
@@ -56,6 +62,7 @@ where
     pub(crate) channel: Arc<MpscChannel<T, N>>,
 }
 
+/// A receiver in a mpsc channel
 #[repr(transparent)]
 pub struct MpscReceiver<T, const N: usize>
 where
@@ -65,6 +72,7 @@ where
     pub(crate) channel: Arc<MpscChannel<T, N>>,
 }
 
+/// A sender in a mpmc channel
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpmcSender<T, const N: usize>
@@ -75,6 +83,7 @@ where
     pub(crate) channel: Arc<MpmcChannel<T, N>>,
 }
 
+/// A receiver in a mpmc channel
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpmcReceiver<T, const N: usize>

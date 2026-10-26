@@ -1,3 +1,4 @@
+//! Defines all the operations for sending/receiving by senders/receivers for different channels
 use crate::{
     helper_functions::{determine_flag_size, determine_marker_type_index},
     helper_traits::MarkerData,
@@ -6,7 +7,8 @@ use crate::{
         buffer_modes::{MPMC, MPSC, SPMC, SPSC},
         helper_models::MarkerTypeDecider,
         send_recv_futures::{
-            MpmcRecvFuture, MpmcSendFuture, MpscRecvFuture, MpscSendFuture, SpmcRecvFuture, SpmcSendFuture, SpscRecvFuture, SpscSendFuture
+            MpmcRecvFuture, MpmcSendFuture, MpscRecvFuture, MpscSendFuture, SpmcRecvFuture,
+            SpmcSendFuture, SpscRecvFuture, SpscSendFuture,
         },
         senders_receivers::{
             MpmcReceiver, MpmcSender, MpscReceiver, MpscSender, SpmcReceiver, SpmcSender,

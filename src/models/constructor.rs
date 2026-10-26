@@ -1,4 +1,5 @@
-// To be transferred under main buffer
+//! The constructors of all the different channels are defined here. The user directly constructs
+//! these channels. These are the first things to be created to be used by the user
 use std::{collections::VecDeque, sync::atomic::AtomicBool};
 
 use atomic_waker::AtomicWaker;
@@ -20,6 +21,7 @@ use crate::{
     },
 };
 
+/// Make a spsc channel for the buffer
 pub fn spsc_channel<T, const N: usize>() -> (SpscSender<T, N>, SpscReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -42,6 +44,7 @@ where
     )
 }
 
+/// Make a spmc channel for the buffer
 pub fn spmc_channel<T, const N: usize>() -> (SpmcSender<T, N>, SpmcReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -65,6 +68,7 @@ where
     )
 }
 
+/// Make a mpsc channel for the buffer
 pub fn mpsc_channel<T, const N: usize>() -> (MpscSender<T, N>, MpscReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -88,6 +92,7 @@ where
     )
 }
 
+/// Make a mpmc channel for the buffer
 pub fn mpmc_channel<T, const N: usize>() -> (MpmcSender<T, N>, MpmcReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,

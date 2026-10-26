@@ -1,26 +1,34 @@
+//! The models which provide various features to the main buffer are defined here
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 
 use crate::helper_models::cache_aligned_type::CacheAligned;
 use crate::helper_traits::{MarkerAtomicOperations, MarkerData};
 const ATOMIC_ZERO: AtomicU8 = AtomicU8::new(0); // Used to init the bit flags
 
-// Marking the state of a bit in the mask -- 0 for free state, 1 for busy
+/// Marking the state of a bit in the mask -- 0 for free state, 1 for busy
 pub(crate) enum BitFlip {
-    Register,   // Bit -> 1 -- register busy state
-    Unregister, // Bit -> 0 -- unregister busy state
+    /// Bit -> 1 -- register busy state
+    Register,
+    /// Bit -> 0 -- unregister busy state
+    Unregister,
 }
 
-// Create the markers for the buffer queue, head/tail moves on insertion
-// The ready mask is a bit-flag mask array that denotes if some value is ready for operations
+/// Create the markers for the buffer queue, head/tail moves on insertion
+/// The ready mask is a bit-flag mask array that denotes if some value is ready for operations
 pub(crate) struct BufferMarkers<
     MarkerType: Default + MarkerAtomicOperations,
     const MASK_SIZE: usize,
 > {
-    pub head: CacheAligned<MarkerType>,    // The buffer's head index
-    pub tail: CacheAligned<MarkerType>,    // The buffer's tail index
-    pub invalidated: AtomicBool,           // If the buffer is invalidated
-    pub write_mask: [AtomicU8; MASK_SIZE], // The mask to represent write-state
-    pub read_mask: [AtomicU8; MASK_SIZE],  // The mask to represent read-state
+    /// The buffer's head index
+    pub head: CacheAligned<MarkerType>,
+    /// The buffer's tail index
+    pub tail: CacheAligned<MarkerType>,
+    /// If the buffer is invalidated
+    pub invalidated: AtomicBool,
+    /// The mask to represent write-state
+    pub write_mask: [AtomicU8; MASK_SIZE],
+    /// The mask to represent read-state
+    pub read_mask: [AtomicU8; MASK_SIZE],
 }
 
 impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, M_SIZE> {
@@ -35,7 +43,7 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
         }
     }
 
-    // Update the read mask for an active read operation
+    /// Update the read mask for an active read operation
     #[inline(always)]
     pub fn update_read_mask(&self, idx: usize, order: Ordering, operation: BitFlip) {
         let el_idx = idx / 8; // Where the input in bit mask is gonna happen
@@ -48,7 +56,7 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
         };
     }
 
-    // Update the write operation for an active write mask
+    /// Update the write operation for an active write mask
     #[inline(always)]
     pub fn update_write_mask(&self, idx: usize, order: Ordering, operation: BitFlip) {
         let el_idx = idx / 8; // Where the input in bit mask is gonna happen
@@ -61,7 +69,7 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
         };
     }
 
-    // Checks if the bit at a given idx is 0 -- means no reading going on
+    /// Checks if the bit at a given idx is 0 -- means no reading going on
     #[inline(always)]
     pub fn is_not_being_read(&self, idx: usize) -> bool {
         let el_idx = idx / 8;
@@ -70,7 +78,7 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
         self.read_mask[el_idx].load(Ordering::Acquire) & mask == 0
     }
 
-    // Checks if the bit at a given idx is 0 -- means no writing going on
+    /// Checks if the bit at a given idx is 0 -- means no writing going on
     #[inline(always)]
     pub fn is_not_being_written(&self, idx: usize) -> bool {
         let el_idx = idx / 8;
@@ -80,9 +88,10 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
     }
 }
 
-// This struct holds the info about the marker type to be used on the markers
-// The different trait implementations produce the appropriate marker type -- check BufferQueue
+/// Marker type info to be used on markers
+/// The different trait implementations produce the appropriate marker type -- check BufferQueue
 pub struct MarkerTypeDecider<const N: usize>;
+
 impl MarkerData for MarkerTypeDecider<0> {
     type MarkerType = AtomicU8;
     const DENOMINATOR: usize = 8;

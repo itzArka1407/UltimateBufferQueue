@@ -1,3 +1,5 @@
+//! The main buffer holding the messages and markers are defined here
+
 use crate::{
     helper_functions::{determine_flag_size, determine_marker_type_index},
     helper_traits::{MarkerAtomicOperations, MarkerData, OutputTrait},
@@ -11,8 +13,8 @@ use std::{
     sync::atomic::Ordering,
 };
 
-// SAFETY: Uses nightly features, stable rust as of May 2026 doesn't support generic const
-// evaluations, so this is not possible to do with stable rust
+/// SAFETY: Uses nightly features, stable rust as of May 2026 doesn't support generic const
+/// evaluations, so this is not possible to do with stable rust
 pub struct BufferQueue<T, Mode: BufferMode, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -59,6 +61,7 @@ where
     // For pushes -- Some(val) -> when push fails, the val is returned, None -> push success
     // For pops -- Some(val) -> pop success, val is returned, None -> pop failed
 
+    /// Push for a sp channel
     #[inline(always)]
     pub(crate) fn _sp_push(&self, val: T) -> Option<T> {
         let write_slot = self.markers.head.0.load(Ordering::Relaxed).to_usize();
@@ -88,6 +91,7 @@ where
         None
     }
 
+    /// Push for a mp channel
     #[inline(always)]
     pub(crate) fn _mp_push(&self, val: T) -> Option<T> {
         let old_head = match self.markers.head.0.try_update(
@@ -141,6 +145,7 @@ where
         None
     }
 
+    /// Pop for a sc channel
     #[inline(always)]
     pub(crate) fn _sc_pop(&self) -> Option<T> {
         let read_slot = self.markers.tail.0.load(Ordering::Relaxed).to_usize();
@@ -170,6 +175,7 @@ where
         }
     }
 
+    /// Pop for a mp channel
     #[inline(always)]
     pub(crate) fn _mc_pop(&self) -> Option<T> {
         let old_tail = self
@@ -223,6 +229,7 @@ where
         }
     }
 
+    /// Invalidate the state of the buffer(cannot use anymore)
     #[inline(always)]
     pub fn invalidate(&self) {
         self.markers.invalidated.store(true, Ordering::Release);
