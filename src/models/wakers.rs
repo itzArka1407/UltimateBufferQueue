@@ -45,16 +45,17 @@ impl MultiWaker {
 
     pub fn notify(&self) {
         if !self.any_parked.load(Ordering::Relaxed) {
-            return; // No waker parked, so can't notify on any end
+            return;
         }
-
-        let mut wakers = self.wakers.lock();
-        if let Some(w) = wakers.pop_front() {
-            // No more wakers are waiting, the notifications operation are closed now
+        let w = {
+            let mut wakers = self.wakers.lock();
+            let w = wakers.pop_front();
             if wakers.is_empty() {
                 self.any_parked.store(false, Ordering::Relaxed);
             }
-            // Wake the extracted waker
+            w
+        }; // guard dropped here
+        if let Some(w) = w {
             w.wake();
         }
     }
