@@ -13,8 +13,12 @@ use core::{
     sync::atomic::Ordering,
 };
 
-/// SAFETY: Uses nightly features, stable rust as of May 2026 doesn't support generic const
-/// evaluations, so this is not possible to do with stable rust
+/// Fixed-capacity, lock-free ring buffer of `N` slots (holds at most `N - 1` items).
+///
+/// `Mode` picks the topology ([`SPSC`](super::buffer_modes::SPSC), etc.). Most users
+/// should use the channel constructors instead of this type directly.
+///
+/// Requires nightly (`generic_const_exprs`).f
 pub struct BufferQueue<T, Mode: BufferMode, const N: usize>
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -46,6 +50,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Creates an empty buffer. All slots start uninitialised.
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -212,7 +217,7 @@ where
         }
     }
 
-    /// Invalidate the state of the buffer(cannot use anymore)
+    /// Permanently closes the buffer: later pushes fail (value returned) and pops return `None`.
     #[inline(always)]
     pub fn invalidate(&self) {
         self.markers.invalidated.store(true, Ordering::Release);

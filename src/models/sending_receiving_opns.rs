@@ -24,6 +24,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to push without waiting. Returns `Err(val)` if the buffer is full or invalidated.
     #[inline(always)]
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
@@ -34,6 +35,9 @@ where
             Some(v) => Err(v),
         }
     }
+
+    /// Returns a future that resolves once `val` is pushed, suspending while the buffer is full.
+    /// Dropping the future before completion drops `val`.
     pub fn send(&self, val: T) -> SpscSendFuture<'_, T, N> {
         SpscSendFuture {
             channel: &self.channel,
@@ -48,6 +52,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to pop without waiting. Returns `None` if the buffer is empty or invalidated.
     #[inline(always)]
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
@@ -56,6 +61,8 @@ where
         }
         val
     }
+
+    /// Returns a future that resolves with the next item, suspending while the buffer is empty.
     pub fn recv(&self) -> SpscRecvFuture<'_, T, N> {
         SpscRecvFuture {
             channel: &self.channel,
@@ -69,6 +76,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to push without waiting. Returns `Err(val)` if the buffer is full or invalidated.
     #[inline(always)]
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
@@ -79,6 +87,9 @@ where
             Some(v) => Err(v),
         }
     }
+
+    /// Returns a future that resolves once `val` is pushed, suspending while the buffer is full.
+    /// Dropping the future before completion drops `val`.
     pub fn send(&self, val: T) -> SpmcSendFuture<'_, T, N> {
         SpmcSendFuture {
             channel: &self.channel,
@@ -93,6 +104,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to pop without waiting. Returns `None` if the buffer is empty or invalidated.
     #[inline(always)]
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
@@ -101,6 +113,8 @@ where
         }
         val
     }
+
+    /// Returns a future that resolves with the next item, suspending while the buffer is empty.
     pub fn recv(&self) -> SpmcRecvFuture<'_, T, N> {
         SpmcRecvFuture {
             channel: &self.channel,
@@ -114,6 +128,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to push without waiting. Returns `Err(val)` if the buffer is full or invalidated.
     #[inline(always)]
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
@@ -124,6 +139,9 @@ where
             Some(v) => Err(v),
         }
     }
+
+    /// Returns a future that resolves once `val` is pushed, suspending while the buffer is full.
+    /// Dropping the future before completion drops `val`.
     pub fn send(&self, val: T) -> MpscSendFuture<'_, T, N> {
         MpscSendFuture {
             channel: &self.channel,
@@ -138,6 +156,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to pop without waiting. Returns `None` if the buffer is empty or invalidated.
     #[inline(always)]
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
@@ -146,6 +165,8 @@ where
         }
         val
     }
+
+    /// Returns a future that resolves with the next item, suspending while the buffer is empty.
     pub fn recv(&self) -> MpscRecvFuture<'_, T, N> {
         MpscRecvFuture {
             channel: &self.channel,
@@ -159,6 +180,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to push without waiting. Returns `Err(val)` if the buffer is full or invalidated.
     #[inline(always)]
     pub fn try_send(&self, val: T) -> Result<(), T> {
         match self.channel.buf.push(val) {
@@ -169,6 +191,9 @@ where
             Some(v) => Err(v),
         }
     }
+
+    /// Returns a future that resolves once `val` is pushed, suspending while the buffer is full.
+    /// Dropping the future before completion drops `val`.
     pub fn send(&self, val: T) -> MpmcSendFuture<'_, T, N> {
         MpmcSendFuture {
             channel: &self.channel,
@@ -183,6 +208,7 @@ where
     [(); determine_flag_size(N, 8)]: Sized,
     MarkerTypeDecider<{ determine_marker_type_index(N) }>: MarkerData,
 {
+    /// Attempts to pop without waiting. Returns `None` if the buffer is empty or invalidated.
     #[inline(always)]
     pub fn try_recv(&self) -> Option<T> {
         let val = self.channel.buf.pop();
@@ -191,6 +217,8 @@ where
         }
         val
     }
+
+    /// Returns a future that resolves with the next item, suspending while the buffer is empty.
     pub fn recv(&self) -> MpmcRecvFuture<'_, T, N> {
         MpmcRecvFuture {
             channel: &self.channel,

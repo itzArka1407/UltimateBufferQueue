@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-/// A sender in a spsc channel
+/// Sending half of an SPSC channel. Not `Clone`.      (SpscSender)
 #[repr(transparent)]
 pub struct SpscSender<T, const N: usize>
 where
@@ -20,7 +20,7 @@ where
     pub(crate) channel: Arc<SpscChannel<T, N>>,
 }
 
-/// A receiver in a spsc channel
+/// Receiving half of an SPSC channel. Not `Clone`.    (SpscReceiver)
 #[repr(transparent)]
 pub struct SpscReceiver<T, const N: usize>
 where
@@ -30,7 +30,7 @@ where
     pub(crate) channel: Arc<SpscChannel<T, N>>,
 }
 
-/// A sender in a spsc channel
+/// Sending half of an SPMC channel. Not `Clone`.      (SpmcSender)
 #[repr(transparent)]
 pub struct SpmcSender<T, const N: usize>
 where
@@ -40,7 +40,7 @@ where
     pub(crate) channel: Arc<SpmcChannel<T, N>>,
 }
 
-/// A receiver in a spmc channel
+/// Receiving half of an SPMC channel. `Clone` to add consumers; each item is delivered to one receiver. (SpmcReceiver)
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct SpmcReceiver<T, const N: usize>
@@ -51,7 +51,7 @@ where
     pub(crate) channel: Arc<SpmcChannel<T, N>>,
 }
 
-/// A sender in a mpsc channel
+/// Sending half of an MPSC channel. `Clone` to add producers. (MpscSender)
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpscSender<T, const N: usize>
@@ -62,7 +62,7 @@ where
     pub(crate) channel: Arc<MpscChannel<T, N>>,
 }
 
-/// A receiver in a mpsc channel
+/// Receiving half of an MPSC channel. Not `Clone`.    (MpscReceiver)
 #[repr(transparent)]
 pub struct MpscReceiver<T, const N: usize>
 where
@@ -72,7 +72,7 @@ where
     pub(crate) channel: Arc<MpscChannel<T, N>>,
 }
 
-/// A sender in a mpmc channel
+/// Sending half of an MPMC channel. `Clone` to add producers. (MpmcSender)
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpmcSender<T, const N: usize>
@@ -83,7 +83,7 @@ where
     pub(crate) channel: Arc<MpmcChannel<T, N>>,
 }
 
-/// A receiver in a mpmc channel
+/// Receiving half of an MPMC channel. `Clone` to add consumers; each item is delivered to one receiver. (MpmcReceiver)use triomphe::Arc;
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct MpmcReceiver<T, const N: usize>

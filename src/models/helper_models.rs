@@ -88,8 +88,8 @@ impl<M: Default + MarkerAtomicOperations, const M_SIZE: usize> BufferMarkers<M, 
     }
 }
 
-/// Marker type info to be used on markers
-/// The different trait implementations produce the appropriate marker type -- check BufferQueue
+/// Type-level function from capacity `N` to a marker width. The index comes from
+/// `determine_marker_type_index(N)`: `0`=`AtomicU8`, `1`=`AtomicU16`, `2`=`AtomicU32`, `3`=`AtomicU64`.
 pub struct MarkerTypeDecider<const N: usize>;
 
 impl MarkerData for MarkerTypeDecider<0> {

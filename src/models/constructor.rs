@@ -3,13 +3,6 @@
 use alloc::collections::VecDeque;
 use core::sync::atomic::AtomicBool;
 
-use atomic_waker::AtomicWaker;
-#[cfg(feature = "std")]
-use parking_lot::Mutex;
-#[cfg(not(feature = "std"))]
-use spin::Mutex;
-use triomphe::Arc;
-
 use crate::{
     helper_functions::{determine_flag_size, determine_marker_type_index},
     helper_traits::MarkerData,
@@ -24,8 +17,21 @@ use crate::{
         wakers::{MultiWaker, SingleWaker},
     },
 };
+use atomic_waker::AtomicWaker;
+#[cfg(feature = "std")]
+use parking_lot::Mutex;
+#[cfg(not(feature = "std"))]
+use spin::Mutex;
+use triomphe::Arc;
 
-/// Make a spsc channel for the buffer
+/// Creates a bounded SPSC channel with `N` slots (capacity `N - 1`).
+///
+/// # Example
+/// ```
+/// let (tx, rx) = buffer_queue::spsc_channel::<u8, 4>();
+/// tx.try_send(1).unwrap();
+/// assert_eq!(rx.try_recv(), Some(1));
+/// ```
 pub fn spsc_channel<T, const N: usize>() -> (SpscSender<T, N>, SpscReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -48,7 +54,14 @@ where
     )
 }
 
-/// Make a spmc channel for the buffer
+/// Creates a bounded SPMC channel with `N` slots (capacity `N - 1`). The receiver is `Clone`.
+///
+/// # Example
+/// ```
+/// let (tx, rx) = buffer_queue::spmc_channel::<u8, 4>();
+/// tx.try_send(1).unwrap();
+/// assert_eq!(rx.try_recv(), Some(1));
+/// ```
 pub fn spmc_channel<T, const N: usize>() -> (SpmcSender<T, N>, SpmcReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -72,7 +85,14 @@ where
     )
 }
 
-/// Make a mpsc channel for the buffer
+/// Creates a bounded MPSC channel with `N` slots (capacity `N - 1`). The sender is `Clone`.
+///
+/// # Example
+/// ```
+/// let (tx, rx) = buffer_queue::mpsc_channel::<u8, 4>();
+/// tx.try_send(1).unwrap();
+/// assert_eq!(rx.try_recv(), Some(1));
+/// ```
 pub fn mpsc_channel<T, const N: usize>() -> (MpscSender<T, N>, MpscReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,
@@ -96,7 +116,14 @@ where
     )
 }
 
-/// Make a mpmc channel for the buffer
+/// Creates a bounded MPMC channel with `N` slots (capacity `N - 1`). Both halves are `Clone`.
+///
+/// # Example
+/// ```
+/// let (tx, rx) = buffer_queue::mpmc_channel::<u8, 4>();
+/// tx.try_send(1).unwrap();
+/// assert_eq!(rx.try_recv(), Some(1));
+/// ```
 pub fn mpmc_channel<T, const N: usize>() -> (MpmcSender<T, N>, MpmcReceiver<T, N>)
 where
     [(); determine_flag_size(N, 8)]: Sized,

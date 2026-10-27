@@ -1,3 +1,4 @@
+//! Core types: the ring buffer, channel modes, sender/receiver handles and futures.
 mod main_buffer;
 pub use main_buffer::BufferQueue;
 pub mod buffer_modes;

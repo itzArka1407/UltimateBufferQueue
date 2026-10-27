@@ -1,12 +1,11 @@
 use core::sync::atomic::Ordering;
 
-/// This trait determines the type of marker to be used for the buffer queue
+/// Selects the atomic marker type (`AtomicU8`..`AtomicU64`) used for head/tail
+/// indices, based on the buffer capacity `N`. Implemented for `MarkerTypeDecider`.
 pub trait MarkerData {
-    /// The type of marker -- implements default(this is used to set the value during
-    /// initialization)
+    /// Atomic type used for the head/tail markers.
     type MarkerType: MarkerAtomicOperations + Default;
-
-    // Used in calculations
+    /// Bit width of the marker type.
     const DENOMINATOR: usize;
 }
 
@@ -25,9 +24,13 @@ pub(crate) trait MarkerAtomicOperations {
     ) -> Result<Self::OutputItem, Self::OutputItem>;
 }
 
-// To convert to/from usize
+/// Lossless-by-contract conversion between a marker's integer type and `usize`,
+/// plus ring-index increment. Implemented for `u8`, `u16`, `u32`, `u64`.
 pub trait OutputTrait {
+    /// Widens the value to `usize`.
     fn to_usize(self) -> usize;
+    /// Narrows a `usize` index to this type (caller guarantees it fits).
     fn from_usize(val: usize) -> Self;
+    /// Returns `(self + 1) % boundary`.
     fn wrapping_increment(self, boundary: usize) -> Self;
 }
